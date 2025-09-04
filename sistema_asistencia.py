@@ -1,4 +1,4 @@
- #!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Sistema de Asistencia Automatizado
@@ -318,7 +318,7 @@ En el archivo adjunto encontraras el detalle de tus registros de asistencia.
 Si tienes alguna consulta, no dudes en contactarnos.
 
 Saludos cordiales,
-Equipo de Recursos Humanos
+Equipo de Proyectos de Peri Company
 
 ---
 Este correo fue generado automaticamente por el Sistema de Asistencia.
