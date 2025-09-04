@@ -3,10 +3,10 @@ name: Sistema de Asistencia Automatizado
 on:
   # Ejecución programada
   schedule:
-    # Sistema de asistencia a las 01:00 UTC (ajustar según tu zona horaria)
-    - cron: '0 1 * * *'  # 01:00 diario
-    # Verificación de pagos a las 02:00 UTC 
-    - cron: '0 2 * * *'  # 02:00 diario
+    # Sistema de asistencia a las 10:00 UTC (05:00 Perú, UTC-5)
+    - cron: '0 10 * * *'  # 10:00 diario
+    # Verificación de pagos a las 11:00 UTC (06:00 Perú, UTC-5)
+    - cron: '0 11 * * *'  # 11:00 diario
   
   # Permitir ejecución manual
   workflow_dispatch:
@@ -26,7 +26,7 @@ jobs:
   sistema-asistencia:
     runs-on: ubuntu-latest
     if: >
-      (github.event.schedule == '0 1 * * *') || 
+      (github.event.schedule == '0 10 * * *') || 
       (github.event_name == 'workflow_dispatch' && 
        (github.event.inputs.action == 'sistema_asistencia' || github.event.inputs.action == 'both'))
     
@@ -72,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: sistema-asistencia
     if: >
-      (github.event.schedule == '0 2 * * *') || 
+      (github.event.schedule == '0 11 * * *') || 
       (github.event_name == 'workflow_dispatch' && 
        (github.event.inputs.action == 'checkpagos' || github.event.inputs.action == 'both'))
     
