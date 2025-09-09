@@ -1,9 +1,9 @@
 name: Verificación de Pagos
 
 on:
-  # Ejecución programada a las 11:00 UTC (06:00 Perú)
+  # Ejecución programada a las 16:00 UTC (11:00 Perú)
   schedule:
-    - cron: '0 11 * * *'  # 11:00 UTC diario
+    - cron: '0 16 * * *'  # 16:00 UTC diario (11:00 AM Perú)
   
   # Permitir ejecución manual
   workflow_dispatch:
