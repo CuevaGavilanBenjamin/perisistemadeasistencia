@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Sistema de Asistencia Automatizado - PROYECTOS
+==============================================
+Procesa reportes de asistencia de PROYECTOS desde Google Sheets y los envía por correo electrónico.
+Ejecuta solo para colaboradores con fecha de pago correspondiente al día actual.
 
+Hojas utilizadas:
+- CHECKPROY: Fechas de pago y estados de proyectos
+- REGISTRO_CALENDARIO_PROYECTOS: Registros de asistencia de proyectos
+- VENDEDORAS: Datos de contacto de colaboradores
+
+Autor: Sistema Automatizado
+Fecha: Septiembre 2025
+"""
 
 # 📦 IMPORTACIONES
 import os
@@ -108,12 +121,12 @@ def procesar_reportes_hoy():
         
         # 📊 CARGAR DATOS
         print("\n📊 Cargando datos de Google Sheets...")
-        df_pagos_check = leer_hoja(service, sheet_id, 'PAGOSCHECK')  # Control de fechas y envíos
-        df_pagos_data = leer_hoja(service, sheet_id, 'PAGOS')        # Datos calculados de horas y montos
-        df_calendario = leer_hoja(service, sheet_id, 'REGISTRO_CALENDARIO')
+        df_pagos_check = leer_hoja(service, sheet_id, 'CHECKPROY')
+        df_pagos_proy = leer_hoja(service, sheet_id, 'PAGOSPROY')  # Datos calculados
+        df_calendario = leer_hoja(service, sheet_id, 'REGISTRO_CALENDARIO_PROYECTOS')
         df_vendedoras = leer_hoja(service, sheet_id, 'VENDEDORAS')
         
-        if any(df is None for df in [df_pagos_check, df_pagos_data, df_calendario, df_vendedoras]):
+        if any(df is None for df in [df_pagos_check, df_pagos_proy, df_calendario, df_vendedoras]):
             print("❌ Error cargando datos necesarios")
             return False
         
@@ -261,16 +274,16 @@ def procesar_reportes_hoy():
             for resultado in resultados:
                 print(f"   • {resultado['Colaborador']}: {resultado['Archivo_Excel']} - Correo: {resultado['Estado_Correo']}")
             
-            # 📊 CALCULAR Y ENVIAR RESUMEN ADMINISTRATIVO
-            print(f"\n📊 Calculando resumen de horas...")
-            resumen_horas = calcular_resumen_horas(resultados, df_pagos_data, df_vendedoras, df_pagos_check, fecha_hoy_str)
+            # 📊 CALCULAR Y ENVIAR RESUMEN ADMINISTRATIVO DE PROYECTOS
+            print(f"\n📊 Calculando resumen de horas de PROYECTOS...")
+            resumen_horas = calcular_resumen_horas_proyectos(resultados, df_pagos_proy, df_vendedoras, df_pagos_check, fecha_hoy_str)
             
             if resumen_horas:
-                print(f"📧 Enviando resumen administrativo con archivos Excel...")
-                if enviar_resumen_administrativo(resumen_horas, fecha_hoy_str, resultados):
-                    print(f"✅ Resumen enviado a becueva749@gmail.com")
+                print(f"📧 Enviando resumen administrativo de PROYECTOS...")
+                if enviar_resumen_administrativo_proyectos(resumen_horas, fecha_hoy_str, resultados):
+                    print(f"✅ Resumen de PROYECTOS enviado a becueva749@gmail.com")
                 else:
-                    print(f"❌ Error enviando resumen administrativo")
+                    print(f"❌ Error enviando resumen administrativo de proyectos")
         
         print("\n🎉 ¡Procesamiento completado!")
         return True
@@ -352,12 +365,12 @@ Este correo fue generado automaticamente por el Sistema de Asistencia.
         print(f"❌ Error enviando correo: {e}")
         return False
 
-def calcular_resumen_horas(resultados, df_pagos_data, df_vendedoras, df_pagos_check, fecha_hoy_str):
+def calcular_resumen_horas_proyectos(resultados, df_pagos_proy, df_vendedoras, df_pagos_check, fecha_hoy_str):
     """
-    Calcula el resumen de horas trabajadas por colaborador usando datos ya calculados de PAGOS
+    Calcula el resumen de horas trabajadas por colaborador usando datos ya calculados de PAGOSPROY
     filtrando por el período específico de cada colaborador
     """
-    print("📊 Calculando resumen de horas por colaborador desde PAGOS...")
+    print("📊 Calculando resumen de horas por colaborador desde PAGOSPROY...")
     
     resumen_por_colaborador = {}
     
@@ -365,14 +378,11 @@ def calcular_resumen_horas(resultados, df_pagos_data, df_vendedoras, df_pagos_ch
         colaborador = resultado['Colaborador']
         print(f"   📋 Procesando: {colaborador}")
         
-        # Obtener información del período desde PAGOSCHECK para la fecha de pago de HOY
-        info_pago = df_pagos_check[
-            (df_pagos_check['Colaborador'] == colaborador) &
-            (df_pagos_check['fecha_pago'] == fecha_hoy_str)
-        ]
+        # Obtener información del período desde CHECKPROY
+        info_pago = df_pagos_check[df_pagos_check['Colaborador'] == colaborador]
         
         if info_pago.empty:
-            print(f"   ⚠️ No se encontró información de período para {colaborador} con fecha de pago {fecha_hoy_str}")
+            print(f"   ⚠️ No se encontró información de período para {colaborador} en CHECKPROY")
             continue
             
         periodo_inicio = info_pago.iloc[0]['periodo_inicio']
@@ -380,11 +390,11 @@ def calcular_resumen_horas(resultados, df_pagos_data, df_vendedoras, df_pagos_ch
         
         print(f"   🔍 Buscando datos para período: {periodo_inicio} - {periodo_fin}")
         
-        # Filtrar datos del colaborador desde PAGOS por período específico
-        colaborador_pago = df_pagos_data[
-            (df_pagos_data['Colaborador'] == colaborador) &
-            (df_pagos_data['periodo_inicio'] == periodo_inicio) &
-            (df_pagos_data['periodo_fin'] == periodo_fin)
+        # Filtrar datos del colaborador desde PAGOSPROY por período específico
+        colaborador_pago = df_pagos_proy[
+            (df_pagos_proy['Colaborador'] == colaborador) &
+            (df_pagos_proy['periodo_inicio'] == periodo_inicio) &
+            (df_pagos_proy['periodo_fin'] == periodo_fin)
         ]
         
         if colaborador_pago.empty:
@@ -412,17 +422,16 @@ def calcular_resumen_horas(resultados, df_pagos_data, df_vendedoras, df_pagos_ch
                 pago_hora_str = str(colaborador_info.iloc[0]['pago_por_hora']).replace(',', '.')
                 pago_hora = float(pago_hora_str)
             except (ValueError, TypeError):
-                print(f"   ⚠️ Error convirtiendo tarifa para {colaborador}, usando 6.41")
-                pago_hora = 6.41
+                print(f"   ⚠️ Error convirtiendo tarifa para {colaborador}, usando 12.50")
+                pago_hora = 12.50
         else:
             # Calcular tarifa basada en el monto y horas si no está en VENDEDORAS
-            pago_hora = monto_total / total_horas if total_horas > 0 else 6.41
+            pago_hora = monto_total / total_horas if total_horas > 0 else 12.50
         
         resumen_por_colaborador[colaborador] = {
             'horas': round(total_horas, 2),
             'horas_normales': round(horas_normales, 2),
             'horas_extra': round(horas_extra, 2),
-            'registros': resultado['Registros_Asistencia'],
             'periodo': f"{periodo_inicio} - {periodo_fin}",
             'tarifa_hora': f"{pago_hora} PEN/hora",
             'total_pen': round(monto_total, 2)
@@ -432,9 +441,9 @@ def calcular_resumen_horas(resultados, df_pagos_data, df_vendedoras, df_pagos_ch
     
     return resumen_por_colaborador
 
-def enviar_resumen_administrativo(resumen_por_colaborador, fecha_hoy_str, resultados):
+def enviar_resumen_administrativo_proyectos(resumen_por_colaborador, fecha_hoy_str, resultados):
     """
-    Envía el resumen consolidado de horas al administrador con archivos Excel adjuntos
+    Envía el resumen consolidado de horas de PROYECTOS al administrador con archivos Excel adjuntos
     """
     try:
         load_dotenv()
@@ -447,16 +456,16 @@ def enviar_resumen_administrativo(resumen_por_colaborador, fecha_hoy_str, result
         
         # Crear mensaje
         msg = EmailMessage()
-        msg['Subject'] = f'📊 Resumen de Reportes de Asistencia - {fecha_hoy_str}'
+        msg['Subject'] = f'📊 Resumen de Reportes de PROYECTOS - {fecha_hoy_str}'
         msg['From'] = gmail_user
         msg['To'] = 'becueva749@gmail.com'
         
         # Construir el cuerpo del mensaje
         cuerpo = f"""Estimado Administrador,
 
-Se han procesado los reportes de asistencia para la fecha: {fecha_hoy_str}
+Se han procesado los reportes de asistencia de PROYECTOS para la fecha: {fecha_hoy_str}
 
-Resumen de horas por usuario:
+Resumen de horas por usuario (PROYECTOS):
 
 """
         
@@ -479,11 +488,11 @@ TOTAL GENERAL: {round(total_horas_general, 2)} horas    {round(total_pen_general
 Detalles del procesamiento:
 • Total de colaboradores procesados: {len(resumen_por_colaborador)}
 • Fecha de procesamiento: {fecha_hoy_str}
-• Sistema: Asistencia General
+• Sistema: Asistencia de PROYECTOS
 • Archivos adjuntos: {len(resultados)} reportes Excel
 
 Saludos cordiales,
-Sistema Automatizado de Asistencia
+Sistema Automatizado de Asistencia - Proyectos
 
 ---
 Este correo fue generado automáticamente.
@@ -524,11 +533,11 @@ Este correo fue generado automáticamente.
             server.login(gmail_user, gmail_password)
             server.send_message(msg)
         
-        print("✅ Resumen administrativo enviado exitosamente")
+        print("✅ Resumen administrativo de PROYECTOS enviado exitosamente")
         return True
         
     except Exception as e:
-        print(f"❌ Error enviando resumen administrativo: {e}")
+        print(f"❌ Error enviando resumen administrativo de proyectos: {e}")
         return False
 
 if __name__ == "__main__":
@@ -536,8 +545,8 @@ if __name__ == "__main__":
     exito = procesar_reportes_hoy()
     
     if exito:
-        print("\n✅ Script sistema_asistencia.py ejecutado exitosamente")
+        print("\n✅ Script asistencia_proy.py ejecutado exitosamente")
         exit(0)
     else:
-        print("\n❌ Script sistema_asistencia.py falló")
+        print("\n❌ Script asistencia_proy.py falló")
         exit(1)
