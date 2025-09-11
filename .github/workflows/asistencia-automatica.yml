@@ -1,0 +1,97 @@
+name: 🎯 Sistema de Asistencia Automatizado
+
+on:
+  # Ejecutar cada hora
+  schedule:
+    - cron: '0 * * * *'  # Se ejecuta al minuto 0 de cada hora
+  
+  # También permitir ejecución manual
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: 'Forzar ejecución (true/false)'
+        required: false
+        default: 'false'
+
+jobs:
+  procesar-asistencia:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout del repositorio
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: 📦 Instalar dependencias
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas python-dotenv google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client pandasql openpyxl
+    
+    - name: 🔧 Configurar variables de entorno
+      env:
+        GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+        GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      run: |
+        echo "✅ Variables de entorno configuradas"
+        echo "📊 Sheet ID configurado: $(echo $GOOGLE_SHEET_ID | cut -c1-10)..."
+        echo "🔑 Credenciales JSON configuradas: $(echo $GOOGLE_SERVICE_ACCOUNT_JSON | wc -c) caracteres"
+    
+    - name: 🎯 Ejecutar Sistema de Asistencia
+      env:
+        GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+        GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+      run: |
+        echo "🚀 Iniciando proceso de asistencia automatizado..."
+        echo "⏰ Hora de ejecución: $(date)"
+        echo "🌍 Zona horaria: $(timedatectl show --property=Timezone --value)"
+        
+        python asistencia_automatica.py
+        
+        echo "✅ Proceso completado"
+        echo "⏰ Hora de finalización: $(date)"
+    
+    - name: 📊 Resumen de ejecución
+      if: always()
+      run: |
+        echo "=== RESUMEN DE EJECUCIÓN ==="
+        echo "⏰ Fecha/Hora: $(date)"
+        echo "🔄 Workflow: ${{ github.workflow }}"
+        echo "📝 Commit: ${{ github.sha }}"
+        echo "🌿 Branch: ${{ github.ref_name }}"
+        
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "✅ Estado: ÉXITO"
+        else
+          echo "❌ Estado: ERROR"
+        fi
+        
+        echo "================================"
+
+  # Trabajo adicional para notificaciones (opcional)
+  notificar-resultado:
+    needs: procesar-asistencia
+    runs-on: ubuntu-latest
+    if: always()  # Ejecutar siempre, sin importar si el trabajo anterior falló
+    
+    steps:
+    - name: 📧 Resultado del procesamiento
+      run: |
+        echo "📊 === RESULTADO DEL PROCESAMIENTO ==="
+        
+        if [ "${{ needs.procesar-asistencia.result }}" = "success" ]; then
+          echo "✅ El sistema de asistencia se ejecutó correctamente"
+          echo "🎉 Todas las funciones completadas exitosamente"
+        elif [ "${{ needs.procesar-asistencia.result }}" = "failure" ]; then
+          echo "❌ Error en el procesamiento de asistencia"
+          echo "🔍 Revisar logs para más detalles"
+        else
+          echo "⚠️ Procesamiento cancelado o estado desconocido"
+        fi
+        
+        echo "⏰ Próxima ejecución programada: En 1 hora"
+        echo "==========================================="
