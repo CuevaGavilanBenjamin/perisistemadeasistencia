@@ -3,7 +3,7 @@ name: Check Proyectos Automation
 on:
   schedule:
     # Ejecutar cada hora de lunes a viernes (UTC)
-    - cron: '0 * * * 1-5'  
+    - cron: '0 16 * * *'  
   workflow_dispatch:  # Permite ejecución manual
 
 jobs:
@@ -46,7 +46,7 @@ jobs:
         
     - name: Upload logs if available
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: checkproy-logs
         path: |
