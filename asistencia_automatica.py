@@ -469,11 +469,15 @@ class SistemaAsistencia:
                     if not hora_entrada_dt or not hora_salida_dt:
                         continue
                         
-                    minutos = hora_salida_dt - hora_entrada_dt
-                    minutos = int(minutos.total_seconds() / 60)
+                    # Calcular diferencia en segundos
+                    diferencia_segundos = (hora_salida_dt - hora_entrada_dt).total_seconds()
                     
-                    if minutos < 0:
-                        minutos = minutos + 1440
+                    # Si es negativo, significa que cruzó medianoche
+                    if diferencia_segundos < 0:
+                        diferencia_segundos += 24 * 60 * 60  # Agregar 24 horas
+                    
+                    # Convertir a minutos
+                    minutos = int(diferencia_segundos / 60)
                     
                     minutos_normales = 0
                     minutos_extras = 0
@@ -499,14 +503,30 @@ class SistemaAsistencia:
                             if not hora_inicio_dt or not hora_fin_dt:
                                 continue
                             
+                            # Calcular horas extras correctamente
                             minutos_extras = 0
-                            if hora_inicio_dt > hora_entrada_dt:
+                            
+                            # Si llegó antes del horario normal, esas son horas extras
+                            if hora_entrada_dt < hora_inicio_dt:
                                 minutos_extras += (hora_inicio_dt - hora_entrada_dt).total_seconds() / 60
-                            if hora_fin_dt < hora_salida_dt:
+                            
+                            # Si salió después del horario normal, esas son horas extras
+                            if hora_salida_dt > hora_fin_dt:
                                 minutos_extras += (hora_salida_dt - hora_fin_dt).total_seconds() / 60
-                                
+                            
+                            # Los minutos normales son el total menos las horas extras
                             minutos_normales = minutos - minutos_extras
+                            
+                            # Asegurar que no haya valores negativos
+                            if minutos_normales < 0:
+                                minutos_normales = 0
+                                minutos_extras = minutos
+                            
                             break
+                    
+                    # Si no se encontró horario, todo el tiempo es normal
+                    if minutos_normales == 0 and minutos_extras == 0:
+                        minutos_normales = minutos
                     
                     minutos_normales = int(minutos_normales)
                     minutos_extras = int(minutos_extras)
