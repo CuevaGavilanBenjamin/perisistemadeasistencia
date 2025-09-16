@@ -268,7 +268,7 @@ def procesar_reportes_hoy():
             if resumen_horas:
                 print(f"📧 Enviando resumen administrativo con archivos Excel...")
                 if enviar_resumen_administrativo(resumen_horas, fecha_hoy_str, resultados):
-                    print(f"✅ Resumen enviado a becueva749@gmail.com")
+                    print(f"✅ Resumen enviado CORRECTAMENTE a nitza.peri.d@gmail.com - ARCHIVO ACTUALIZADO")
                 else:
                     print(f"❌ Error enviando resumen administrativo")
         
@@ -432,7 +432,7 @@ def calcular_resumen_horas(resultados, df_pagos_data, df_vendedoras, df_pagos_ch
     
     return resumen_por_colaborador
 
-def enviar_resumen_administrativo(resumen_por_colaborador, fecha_hoy_str, resultados):
+def  enviar_resumen_administrativo(resumen_por_colaborador, fecha_hoy_str, resultados):
     """
     Envía el resumen consolidado de horas al administrador con archivos Excel adjuntos
     """
@@ -449,8 +449,8 @@ def enviar_resumen_administrativo(resumen_por_colaborador, fecha_hoy_str, result
         msg = EmailMessage()
         msg['Subject'] = f'📊 Resumen de Reportes de Asistencia - {fecha_hoy_str}'
         msg['From'] = gmail_user
-        msg['To'] = 'becueva749@gmail.com'
-        
+        msg['To'] = 'nitza.peri.d@gmail.com'
+
         # Construir el cuerpo del mensaje
         cuerpo = f"""Estimado Administrador,
 
