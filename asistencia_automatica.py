@@ -101,9 +101,12 @@ class SistemaAsistencia:
                     
                     df = pd.DataFrame(data_rows, columns=headers)
                 else:
-                    df = pd.DataFrame(values)
+                    # Solo hay encabezados, sin datos
+                    headers = values[0]
+                    df = pd.DataFrame(columns=headers)
                 
                 print(f"✅ Se leyeron {len(df)} filas de {nombre_hoja}")
+                print(f"📊 Columnas: {list(df.columns)}")
                 return df
             else:
                 print("❌ No se encontraron datos")
@@ -160,23 +163,44 @@ class SistemaAsistencia:
                 print("❌ Error al leer las hojas")
                 return False
             
+            # Verificar columnas necesarias en REGISTRO_DIARIO
+            columnas_necesarias_diario = ["Etapa", "Colaborador", "Hora", "Fecha", "ID"]
+            for col in columnas_necesarias_diario:
+                if col not in registro_diario.columns:
+                    print(f"❌ Falta la columna '{col}' en REGISTRO_DIARIO")
+                    print(f"   Columnas disponibles: {list(registro_diario.columns)}")
+                    return False
+            
             # Buscar nuevos registros
             filas_calendario = len(registro_calendario)
             filas_diarios = len(registro_diario)
             
-            if filas_calendario == 0 or filas_diarios == 0:
-                print("❌ No hay datos para procesar")
+            if filas_diarios == 0:
+                print("❌ No hay datos en REGISTRO_DIARIO para procesar")
                 return False
             
-            ultimo_id = registro_calendario.loc[filas_calendario - 1, "ID_Registro"]
-            index_nuevo = 0
+            # Si REGISTRO_CALENDARIO está vacío, procesar todos los registros
+            if filas_calendario == 0:
+                print("ℹ️ REGISTRO_CALENDARIO está vacío, procesando todos los registros")
+                index_nuevo = 0
+            else:
+                # Verificar que existe la columna ID_Registro
+                if "ID_Registro" not in registro_calendario.columns:
+                    print(f"❌ Falta la columna 'ID_Registro' en REGISTRO_CALENDARIO")
+                    print(f"   Columnas disponibles: {list(registro_calendario.columns)}")
+                    return False
+                
+                # Buscar el último ID procesado
+                ultimo_id = registro_calendario.loc[filas_calendario - 1, "ID_Registro"]
+                index_nuevo = 0
+                
+                for i in range(filas_diarios):
+                    if ultimo_id == registro_diario.loc[filas_diarios - 1 - i, "ID"]:
+                        index_nuevo = filas_diarios - 1 - i
+                        break
+                
+                index_nuevo = index_nuevo + 1
             
-            for i in range(filas_diarios):
-                if ultimo_id == registro_diario.loc[filas_diarios - 1 - i, "ID"]:
-                    index_nuevo = filas_diarios - 1 - i
-                    break
-            
-            index_nuevo = index_nuevo + 1
             entradas = []
             
             for j in range(index_nuevo, filas_diarios):
@@ -246,6 +270,15 @@ class SistemaAsistencia:
             filas_calendario = len(registro_calendario)
             filas_diarios = len(registro_diario)
             salidas = []
+            
+            # Verificar si hay datos para procesar
+            if filas_calendario == 0:
+                print("ℹ️ REGISTRO_CALENDARIO está vacío, no hay salidas para actualizar")
+                return True
+            
+            if filas_diarios == 0:
+                print("❌ No hay datos en REGISTRO_DIARIO")
+                return False
             
             # Buscar salidas pendientes
             for i in range(filas_calendario):
@@ -371,22 +404,30 @@ class SistemaAsistencia:
                 print("❌ No se encontraron registros para actualizar")
                 return False
             
+            # Debug: mostrar algunos ejemplos
+            print(f"📝 Ejemplo de actualizaciones (primeras 3):")
+            for update in batch_updates[:min(3, len(batch_updates))]:
+                print(f"   {update['range']}: {update['values'][0][0]}")
+            
             # Ejecutar batch update
             batch_update_request = {
                 'valueInputOption': 'USER_ENTERED',
                 'data': batch_updates
             }
             
-            self.service.spreadsheets().values().batchUpdate(
+            response = self.service.spreadsheets().values().batchUpdate(
                 spreadsheetId=self.sheet_id,
                 body=batch_update_request
             ).execute()
             
             print(f"🎉 Se ejecutaron {len(batch_updates)} actualizaciones en batch")
+            print(f"📊 Respuesta de Google: {response.get('totalUpdatedCells', 0)} celdas actualizadas")
             return True
             
         except Exception as e:
             print(f"❌ Error al actualizar salidas: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def parsear_hora(self, hora_str):
@@ -447,6 +488,11 @@ class SistemaAsistencia:
             dias_name = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"]
             filas_calendario = len(registro_calendario)
             minutos_calculados = []
+            
+            # Verificar si hay datos para procesar
+            if filas_calendario == 0:
+                print("ℹ️ REGISTRO_CALENDARIO está vacío, no hay minutos para calcular")
+                return True
             
             for i in range(filas_calendario):
                 if (registro_calendario.loc[filas_calendario - 1 - i, "Minutos"] == "" and 
