@@ -379,12 +379,17 @@ def calcular_resumen_horas_proyectos(resultados, df_pagos_proy, df_vendedoras, d
         print(f"   📋 Procesando: {colaborador}")
         
         # Obtener información del período desde CHECKPROY
-        info_pago = df_pagos_check[df_pagos_check['Colaborador'] == colaborador]
+        # Filtrar solo períodos pendientes (sin check o check vacío)
+        info_pago = df_pagos_check[
+            (df_pagos_check['Colaborador'] == colaborador) &
+            ((df_pagos_check['check'] == '') | (df_pagos_check['check'].isna()))
+        ]
         
         if info_pago.empty:
-            print(f"   ⚠️ No se encontró información de período para {colaborador} en CHECKPROY")
+            print(f"   ⚠️ No se encontró información de período pendiente para {colaborador} en CHECKPROY")
             continue
             
+        # Tomar el primer período pendiente (debería ser el más reciente sin procesar)
         periodo_inicio = info_pago.iloc[0]['periodo_inicio']
         periodo_fin = info_pago.iloc[0]['periodo_fin']
         
